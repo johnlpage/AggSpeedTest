@@ -1,54 +1,96 @@
 Create an Atlas Cluster to use - for any Benchmarkin an M30 is a miniumum as it has dedicated resources.
-
-Download the Sampel Atlas Data
-
-curl https://atlas-education.s3.amazonaws.com/sampledata.archive -o sampledata.archive
-mongorestore --archive=sampledata.archive
-
-Plan is to test vector queries per second, retrieving the top N for each.
-Data Will have pre-computed vectors we will sue these vectors to query so no AI required.
-Effectively a 'Like this' type query
-
-//We will also Synthesize data by taking each record and creating multiepl copies very slightly changin gth evectors for each.
-
-M30 has 4GB free RAM - 2048
-
-embedded_movies has 3483 records.
-
-Embedding  size is 1536 - 6KB required
-
-600,000 Vectors
+Get an EC2 instance close to it
 
 
+
+install mongosh
+
+Create a `/etc/yum.repos.d/mongodb-org-7.0.repo` file so that you can install mongosh directly using yum.
 
 ```
-use sample_mflix
-doc = db.movies.findOne()
-bsonsize(doc)
-21925
-bsonsize(doc.plot_embedding)
-20399
+[mongodb-org-7.0]
+name=MongoDB Repository
+baseurl=https://repo.mongodb.org/yum/amazon/2023/mongodb-org/7.0/$basearch/
+gpgcheck=1
+enabled=1
+gpgkey=https://www.mongodb.org/static/pgp/server-7.0.asc
 ```
 
-Index size is 8K * 4 bytes (only 32 bits used)
+then 
 
-8K per 2048 vector
-We have 4GB Free
+```
+sudo yum install -y mongodb-mongosh-shared-openssl3
+```
 
-~400,000 vectors
-
-M30 has 4GB Cache - so let's assume we have 3GB of Movies
-Movies without Embeddings is ~6GB
-SO multipley 500X
-
-Total number of Movies (and Embeddings) = 
+Load Sample data from the GUI then run gendata.sh
 
 
-Simple query speed test - fetch random by ID
+// Download and Build AggSpeedTEst benchmarking tool
+
+```
+sudo yum install java
+sudo yum install git
+ git clone https://github.com/johnlpage/AggSpeedTest.git
+sudo wget https://repos.fedorapeople.org/repos/dchen/apache-maven/epel-apache-maven.repo -O /etc/yum.repos.d/epel-apache-maven.repo
+sudo sed -i s/\$releasever/6/g /etc/yum.repos.d/epel-apache-maven.repo
+sudo yum install -y apache-maven
+
+cd AggSpeedTest
+mvn clean package
+```
 
 
-Reading all _id values
-Have: 599076
- 644.821978757146 queries/s
+// Test retrieval speed by _id where vectors are included
 
- 
+```
+{
+    "uri" : "mongodb+srv://USER:PWD@vectortest.eez2n.mongodb.net/?retryWri
+tes=true&w=majority&appName=VectorTest",
+    "threads" : 20,
+    "pipeline" : [ {"$match":{"_id" : "<<VALUE>>"}}, { "$limit" : 1 }],
+    "database" : "sample_mflix",
+    "collection" : "movies_with_embed",
+    "calls" : 1000000,
+    "query_values" : {
+          "uri" : "mongodb+srv://USER:PWD@vectortest.eez2n.mongodb.net/?retryWri
+tes=true&w=majority&appName=VectorTest",
+       "database" : "sample_mflix",
+       "collection" : "movies_only",
+       "pipeline": [{"$match":{"_id":{"$ne":null}}},{"$project":{"_id":1}}],
+       "field" : "_id"
+    } 
+}
+13:20:11.616 [main] INFO  com.mongodb.devrel.AggSpeedTest - 88 - Time: 1030913 ms Operations/s = 683
+
+```
+// Test retrieval speed by _id where vectors are not included
+
+{
+    "uri" : "mongodb+srv://USER:PWD@vectortest.eez2n.mongodb.net/?retryWri
+tes=true&w=majority&appName=VectorTest",
+    "threads" : 20,
+    "pipeline" : [ {"$match":{"_id" : "<<VALUE>>"}}, { "$limit" : 1 }],
+    "database" : "sample_mflix",
+    "collection" : "movies_only",
+    "calls" : 1000000,
+    "query_values" : {
+          "uri" : "mongodb+srv://USER:PWD@vectortest.eez2n.mongodb.net/?retryWri
+tes=true&w=majority&appName=VectorTest",
+       "database" : "sample_mflix",
+       "collection" : "movies_only",
+       "pipeline": [{"$match":{"_id":{"$ne":null}}},{"$project":{"_id":1}}],
+       "field" : "_id"
+    } 
+}
+
+12:59:47.559 [main] INFO  com.mongodb.devrel.AggSpeedTest - 88 - Time: 661014 ms Operations/s = 1066
+
+```
+12:22:08.897 [main] INFO  com.mongodb.devrel.AggSpeedTest - 88 - Time: 16920 ms Operations/s = 59101
+
+
+
+
+// Test retrieval speed by vector where vectors are inline
+
+// Test retrieval speed by vector where vectors are not inline

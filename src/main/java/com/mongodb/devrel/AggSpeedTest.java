@@ -73,8 +73,8 @@ public class AggSpeedTest {
             logger.info("Connected to database: " + testConfig.getString("database"));
             int numberOfThreads = testConfig.getInteger("threads");
             ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
-            int totalCalls = testConfig.getInteger("calls");
-            int callsPerThread = totalCalls / numberOfThreads;
+            long totalCalls = testConfig.getInteger("calls");
+            int callsPerThread = (int) totalCalls / numberOfThreads;
             logger.info("Starting Timing");
             Date startTime = new Date();
             for (int i = 0; i < numberOfThreads; i++) {

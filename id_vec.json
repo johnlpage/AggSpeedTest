@@ -1,0 +1,15 @@
+{
+    "uri" : "mongodb://localhost",
+    "threads" : 20,
+    "pipeline" : [ {"$match":{"_id" : "<<VALUE>>"}}, { "$limit" : 1 }],
+    "database" : "sample_mflix",
+    "collection" : "movies_with_embed",
+    "calls" : 1000000,
+    "query_values" : {
+        "uri" : "mongodb://localhost",
+       "database" : "sample_mflix",
+       "collection" : "movies_only",
+       "pipeline": [{"$match":{"_id":{"$ne":null}}},{"$project":{"_id":1}}],
+       "field" : "_id"
+    } 
+}

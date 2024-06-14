@@ -17,3 +17,4 @@ db.embedded_movies.aggregate([...multiple_docs, do_vary,movies_with_embed])
 //Make Split version
 db.movies_with_embed.aggregate([ {$project: {plot_embedding:1}},{$out:"embeddings_only"}])
 db.movies_with_embed.aggregate([ {$project: {plot_embedding:0}},{$out:"movies_only"}])
+
